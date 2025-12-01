@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DerivX</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@9.5.0/lib/browser/math.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <style>
+        :root {
+            --fg: #24292e;
+            --muted: #6a737d;
+            --bg: #ffffff;
+            --canvas: #f6f8fa;
+            --border: #e1e4e8;
+            --accent: #0366d6;
+            --success: #28a745;
+            --danger: #d73a49;
+            --warning: #f9c513;
+            --shadow: 0 1px 3px rgba(27,31,36,0.12);
+            --shadow-hover: 0 2px 6px rgba(27,31,36,0.15);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --code-bg: #f6f8fa;
+            --transition: all 0.2s ease;
+            --logo: invert(0);
+        }
+        [data-color-mode="dark"] {
+            --fg: #c9d1d9;
+            --muted: #8b949e;
+            --bg: #0d1117;
+            --canvas: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --code-bg: #161b22;
+            --shadow: 0 1px 3px rgba(27,31,36,0.2);
+            --shadow-hover: 0 2px 6px rgba(27,31,36,0.25);
+            --logo: invert(1);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: var(--transition);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 420px;
+            background-color: var(--bg);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+        }
+        .market-params, .option-form, .options-list, .strategy-templates {
+            margin-bottom: 16px;
+        }
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--fg);
+            display: flex;
+            align-items: center;
+        }
+        h2 i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--fg);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.2);
+        }
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        button i {
+            margin-right: 3px;
+        }
+        .theme_toggle{
+            margin-right: 0px;
+        }
+        button:hover {
+            background-color: var(--accent);
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        .btn-danger:hover {
+            background-color: var(--danger);
+            opacity: 0.9;
+        }
+        .btn-warning {
+            background-color: var(--warning);
+            color: #000;
+        }
+        .btn-warning:hover {
+            background-color: var(--warning);
+            opacity: 0.9;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--fg);
+        }
+        .btn-outline:hover {
+            background-color: var(--canvas);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .options-list ul {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+        }
+        .option-card {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: var(--canvas);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+        .option-header {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .option-info {
+            display: flex;
+            align-items: center;
+            margin-right: 8px;
+        }
+        .option-type {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .option-type.call {
+            background-color: rgba(40, 167, 69, 0.15);
+            color: var(--success);
+        }
+        .option-type.put {
+            background-color: rgba(215, 58, 73, 0.15);
+            color: var(--danger);
+        }
+        .option-position {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .option-position.long {
+            background-color: rgba(3, 102, 214, 0.15);
+            color: var(--accent);
+        }
+        .option-position.short {
+            background-color: rgba(215, 58, 73, 0.15);
+            color: var(--danger);
+        }
+        .option-details {
+            display: flex;
+            gap: 10px;
+        }
+        .detail-value {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .option-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .option-actions button {
+            padding: 5px;
+            font-size: 0.8rem;
+        }
+        .option-actions i {
+            margin-right: 0;
+        }
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 10px;
+        }
+        .template-btn {
+            text-align: center;
+            padding: 12px 8px;
+            background-color: var(--canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .template-btn:hover {
+            border-color: var(--accent);
+            background-color: var(--bg);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        .template-btn i {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .app-logo {
+            width: 32px;
+            height: 32px;
+            filter: var(--logo);
+        }
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .theme-toggle, .language-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--fg);
+            font-size: 0.85rem;
+            min-width: 50px;
+            transition: var(--transition);
+        }
+        .theme-toggle:hover, .language-toggle:hover {
+            background-color: var(--canvas);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
+        }
+        .chart-container {
+            flex-grow: 1;
+            background-color: var(--bg);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin-bottom: 16px;
+            position: relative;
+            height: 50vh;
+            border: 1px solid var(--border);
+        }
+        .greeks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.85rem;
+        }
+        .greeks-table th, .greeks-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .greeks-table th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--muted);
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            margin-bottom: 16px;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        .card .hd {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 16px;
+            background: var(--canvas);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            display: flex;
+            align-items: center;
+        }
+        .card .hd i {
+            margin-right: 8px;
+        }
+        .card .bd {
+            padding: 16px;
+        }
+        .auto-calculate {
+            display: flex;
+            align-items: center;
+            margin-top: 6px;
+        }
+        .auto-calculate input {
+            width: auto;
+            margin-right: 8px;
+        }
+        .auto-calculate label {
+            display: inline;
+            margin-bottom: 0;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .auto-calculate-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+            background-color: rgba(3, 102, 214, 0.15);
+            color: var(--accent);
+        }
+        input:disabled {
+            background-color: var(--canvas);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+        .update-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background-color: rgba(40, 167, 69, 0.15);
+            color: var(--success);
+            display: none;
+        }
+        .fade-out {
+            animation: fadeOut 1.5s forwards;
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .full-width-btn {
+            width: 100%;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-hover);
+            padding: 20px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 {
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: var(--fg);
+        }
+        .strategy-info {
+            margin-top: 16px;
+            padding: 16px;
+            background-color: var(--canvas);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+        .strategy-info h4 {
+            margin-bottom: 10px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--muted);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .api-status {
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .api-status.connected {
+            background-color: rgba(40, 167, 69, 0.15);
+            color: var(--success);
+        }
+        .api-status.disconnected {
+            background-color: rgba(215, 58, 73, 0.15);
+            color: var(--danger);
+        }
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+           
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                height: auto;
+            }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                padding: 12px;
+            }
+           
+            .chart-container {
+                padding: 10px;
+                height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="card">
+                <div class="hd"><i class="fas fa-chart-line"></i> <span>Market Parameters</span></div>
+                <div class="bd">
+                    <div id="apiStatus" class="api-status disconnected">
+                        <i class="fas fa-circle"></i>
+                        <span>API disconnected</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="cryptoPair">Crypto Pair</label>
+                        <select id="cryptoPair">
+                            <option value="BTC/USDT">BTC/USDT</option>
+                            <option value="ETH/USDT">ETH/USDT</option>
+                            <option value="BNB/USDT">BNB/USDT</option>
+                            <option value="SOL/USDT">SOL/USDT</option>
+                            <option value="ADA/USDT">ADA/USDT</option>
+                            <option value="XRP/USDT">XRP/USDT</option>
+                            <option value="DOT/USDT">DOT/USDT</option>
+                            <option value="DOGE/USDT">DOGE/USDT</option>
+                            <option value="AVAX/USDT">AVAX/USDT</option>
+                            <option value="MATIC/USDT">MATIC/USDT</option>
+                        </select>
+                    </div>
+                    <div class="tabs">
+                        <div class="tab active" data-tab="basic">Basic</div>
+                        <div class="tab" data-tab="advanced">Advanced</div>
+                    </div>
+                   
+                    <div class="tab-content active" id="basicParams">
+                        <!-- Hidden fields for spot price and volatility (loaded from API) -->
+                        <input type="hidden" id="spotPrice" value="100" step="0.01">
+                        <input type="hidden" id="volatility" value="20" step="0.1">
+                       
+                        <div class="form-group">
+                            <label for="riskFreeRate">
+                                Risk-Free Rate (%)
+                            </label>
+                            <input type="number" id="riskFreeRate" value="5" step="0.1" min="0" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label for="timeToExpiration">
+                                Days to Expiration
+                            </label>
+                            <input type="number" id="timeToExpiration" value="30" step="1" min="1" max="3650">
+                        </div>
+                    </div>
+                   
+                    <div class="tab-content" id="advancedParams">
+                        <div class="form-group">
+                            <label for="dividendYield">Dividend Yield (%)</label>
+                            <input type="number" id="dividendYield" value="0" step="0.1" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="hd"><i class="fas fa-plus-circle"></i> <span>Options</span></div>
+                <div class="bd">
+                    <button id="addOptionModalBtn" class="full-width-btn"><i class="fas fa-plus"></i> Add Option</button>
+                    <div class="options-list">
+                        <ul id="optionsContainer">
+                            <!-- Options will be added here dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="hd"><i class="fas fa-layer-group"></i> <span>Strategy Templates</span></div>
+                <div class="bd">
+                    <div class="templates-grid">
+                        <div class="template-btn" data-strategy="longCall">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Long Call</span>
+                        </div>
+                        <div class="template-btn" data-strategy="longPut">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>Long Put</span>
+                        </div>
+                        <div class="template-btn" data-strategy="straddle">
+                            <i class="fas fa-arrows-left-right"></i>
+                            <span>Straddle</span>
+                        </div>
+                        <div class="template-btn" data-strategy="strangle">
+                            <i class="fas fa-arrows-left-right"></i>
+                            <span>Strangle</span>
+                        </div>
+                        <div class="template-btn" data-strategy="butterfly">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>Butterfly</span>
+                        </div>
+                        <div class="template-btn" data-strategy="ironCondor">
+                            <i class="fas fa-hat-cowboy"></i>
+                            <span>Iron Condor</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="loadMarketData" class="btn-outline full-width-btn"><i class="fas fa-sync"></i> Refresh Data</button>
+                <button id="exportJson" class="btn-outline full-width-btn"><i class="fas fa-file-export"></i> Export JSON</button>
+                <button id="exportPng" class="btn-outline full-width-btn"><i class="fas fa-image"></i> Export PNG</button>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <div class="app-title">
+                    <img src="logo.svg" alt="DerivX Logo" class="app-logo" onerror="this.style.display='none'">
+                    <h1>DerivX</h1>
+                </div>
+                <div class="header-controls">
+                    <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                </div>
+            </header>
+            <div class="card">
+                <div class="hd">
+                    <i class="fas fa-chart-area"></i> <span>Profit/Loss Chart (PNL)</span>
+                    <div class="update-indicator" id="updateIndicator">Updated</div>
+                </div>
+                <div class="bd">
+                    <div class="chart-container">
+                        <canvas id="payoffChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="hd"><i class="fas fa-calculator"></i> <span>Greeks</span></div>
+                <div class="bd">
+                    <table class="greeks-table">
+                        <thead>
+                            <tr>
+                                <th>Option</th>
+                                <th>Delta</th>
+                                <th>Gamma</th>
+                                <th>Theta</th>
+                                <th>Vega</th>
+                                <th>Rho</th>
+                            </tr>
+                        </thead>
+                        <tbody id="greeksTableBody">
+                            <!-- Greeks data will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for Add/Edit Option -->
+    <div class="modal-overlay" id="optionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Option</h3>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="optionType">Option Type</label>
+                <select id="optionType">
+                    <option value="call">Call</option>
+                    <option value="put">Put</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="position">Position</label>
+                <select id="position">
+                    <option value="long">Long</option>
+                    <option value="short">Short</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="strike">Strike Price</label>
+                <input type="number" id="strike" value="100" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+                <label for="premium">
+                    Premium
+                    <span class="auto-calculate-indicator" id="autoCalculateIndicator">
+                        <i class="fas fa-calculator"></i> Auto-calculated
+                    </span>
+                </label>
+                <input type="number" id="premium" value="2.5" step="0.01" readonly>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity</label>
+                <input type="number" id="quantity" value="1" step="1" min="1">
+            </div>
+            <div class="button-group">
+                <button id="addOptionBtn" class="full-width-btn"><i class="fas fa-plus"></i> Add Option</button>
+                <div class="button-row" style="display: none;" id="editButtons">
+                    <button id="updateOptionBtn" class="btn-warning full-width-btn"><i class="fas fa-sync"></i> Update Option</button>
+                    <button id="cancelEditBtn" class="btn-outline btn-sm full-width-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8080/api';
+       
+        // State
+        const state = {
+            options: [],
+            currentLanguage: 'ru',
+            currentTheme: 'light',
+            chart: null,
+            editingOptionId: null,
+            currentSymbol: 'BTC/USDT',
+            apiConnected: false
+        };
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPreferences();
+            initChart();
+            initEventListeners();
+            checkAPIHealth();
+            loadMarketData();
+            updateUI();
+            updateChartTheme();
+        });
+        // API Functions
+        async function checkAPIHealth() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    state.apiConnected = true;
+                    updateAPIStatus(true);
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch (error) {
+                state.apiConnected = false;
+                updateAPIStatus(false);
+                console.error('API connection failed:', error);
+            }
+        }
+        function updateAPIStatus(connected) {
+            const statusEl = document.getElementById('apiStatus');
+            if (connected) {
+                statusEl.className = 'api-status connected';
+                statusEl.innerHTML = '<i class="fas fa-circle"></i><span>API connected</span>';
+            } else {
+                statusEl.className = 'api-status disconnected';
+                statusEl.innerHTML = '<i class="fas fa-circle"></i><span>API disconnected</span>';
+            }
+        }
+        async function loadMarketData() {
+            if (!state.apiConnected) {
+                await checkAPIHealth();
+                if (!state.apiConnected) {
+                    console.warn('API not connected, using fallback values');
+                    // Устанавливаем разумные значения по умолчанию
+                    const defaultPrices = {
+                        'BTC/USDT': 90000,
+                        'ETH/USDT': 3000,
+                        'BNB/USDT': 600,
+                        'SOL/USDT': 150,
+                        'ADA/USDT': 0.5,
+                        'XRP/USDT': 0.6,
+                        'DOT/USDT': 7,
+                        'DOGE/USDT': 0.15,
+                        'AVAX/USDT': 35,
+                        'MATIC/USDT': 0.8
+                    };
+                    const defaultVolatility = {
+                        'BTC/USDT': 60,
+                        'ETH/USDT': 70,
+                        'BNB/USDT': 80,
+                        'SOL/USDT': 100,
+                        'ADA/USDT': 90,
+                        'XRP/USDT': 85,
+                        'DOT/USDT': 75,
+                        'DOGE/USDT': 110,
+                        'AVAX/USDT': 95,
+                        'MATIC/USDT': 85
+                    };
+                    
+                    const defaultPrice = defaultPrices[state.currentSymbol] || 100;
+                    const defaultVol = defaultVolatility[state.currentSymbol] || 50;
+                    
+                    document.getElementById('spotPrice').value = defaultPrice;
+                    document.getElementById('volatility').value = defaultVol;
+                    return;
+                }
+            }
+            
+            try {
+                // Загружаем текущую цену
+                const priceResponse = await fetch(`${API_BASE_URL}/price/${encodeURIComponent(state.currentSymbol.replace('/', '_'))}`);
+                if (priceResponse.ok) {
+                    const priceData = await priceResponse.json();
+                    if (priceData.price !== undefined && priceData.price !== null && !isNaN(priceData.price) && priceData.price > 0) {
+                        document.getElementById('spotPrice').value = priceData.price.toFixed(2);
+                        console.log(`Loaded price for ${state.currentSymbol}: ${priceData.price}`);
+                    } else {
+                        throw new Error('Invalid price data received');
+                    }
+                } else {
+                    throw new Error(`Price API responded with status: ${priceResponse.status}`);
+                }
+                
+                // Загружаем волатильность
+                const volResponse = await fetch(`${API_BASE_URL}/volatility/${encodeURIComponent(state.currentSymbol.replace('/', '_'))}`);
+                if (volResponse.ok) {
+                    const volData = await volResponse.json();
+                    if (volData.volatilityPercent !== undefined && volData.volatilityPercent !== null && 
+                        !isNaN(volData.volatilityPercent) && volData.volatilityPercent > 0) {
+                        document.getElementById('volatility').value = volData.volatilityPercent.toFixed(2);
+                        console.log(`Loaded volatility for ${state.currentSymbol}: ${volData.volatilityPercent}%`);
+                    } else {
+                        throw new Error('Invalid volatility data received');
+                    }
+                } else {
+                    throw new Error(`Volatility API responded with status: ${volResponse.status}`);
+                }
+                
+                // Пересчитываем премии существующих опционов
+                if (state.options.length > 0) {
+                    await calculatePremiums();
+                }
+                await updateChart();
+                await calculateGreeks();
+                showUpdateIndicator();
+                
+            } catch (error) {
+                console.error('Error loading market data:', error);
+                // Используем значения по умолчанию при ошибке
+                const defaultPrice = state.currentSymbol.includes('BTC') ? 90000 : 
+                                   state.currentSymbol.includes('ETH') ? 3000 : 100;
+                document.getElementById('spotPrice').value = defaultPrice;
+                document.getElementById('volatility').value = 50;
+            }
+        }
+        async function calculateOptionPrice(type, strike, timeToExpiration, volatility, riskFreeRate, dividendYield) {
+            if (!state.apiConnected) {
+                console.warn('API not connected');
+                return 0;
+            }
+            const spotPrice = parseFloat(document.getElementById('spotPrice').value);
+            if (isNaN(spotPrice) || spotPrice <= 0) {
+                console.warn('Spot price not loaded yet');
+                return 0;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/calculate-option`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: type,
+                        strike: strike,
+                        spotPrice: spotPrice,
+                        timeToExpiration: timeToExpiration,
+                        volatility: volatility,
+                        riskFreeRate: riskFreeRate || 5,
+                        dividendYield: dividendYield || 0
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.price !== undefined && data.price !== null) {
+                        return data.price;
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('API error:', errorData);
+                }
+            } catch (error) {
+                console.error('Error calculating option price:', error);
+            }
+            return 0;
+        }
+        async function calculateStrategyPNL() {
+            if (!state.apiConnected || state.options.length === 0) {
+                return;
+            }
+            try {
+                const spotPrice = parseFloat(document.getElementById('spotPrice').value);
+                const minPrice = Math.max(0, spotPrice * 0.5);
+                const maxPrice = spotPrice * 1.5;
+                const response = await fetch(`${API_BASE_URL}/calculate-strategy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        options: state.options.map(opt => ({
+                            type: opt.type,
+                            position: opt.position,
+                            strike: opt.strike,
+                            premium: opt.premium,
+                            quantity: opt.quantity
+                        })),
+                        minPrice: minPrice,
+                        maxPrice: maxPrice,
+                        numPoints: 200
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateChartFromAPI(data.curve);
+                }
+            } catch (error) {
+                console.error('Error calculating strategy PNL:', error);
+            }
+        }
+        async function calculateGreeks() {
+            if (!state.apiConnected || state.options.length === 0) {
+                return;
+            }
+            const tableBody = document.getElementById('greeksTableBody');
+            tableBody.innerHTML = '';
+            const S = parseFloat(document.getElementById('spotPrice').value);
+            const T = parseFloat(document.getElementById('timeToExpiration').value) / 365;
+            const sigma = parseFloat(document.getElementById('volatility').value) / 100;
+            const r = parseFloat(document.getElementById('riskFreeRate').value) / 100;
+            const q = parseFloat(document.getElementById('dividendYield').value) / 100;
+            for (const option of state.options) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/calculate-greeks`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: option.type,
+                            strike: option.strike,
+                            spotPrice: S,
+                            timeToExpiration: T * 365,
+                            volatility: sigma * 100,
+                            riskFreeRate: r * 100,
+                            dividendYield: q * 100
+                        })
+                    });
+                    if (response.ok) {
+                        const greeks = await response.json();
+                        const row = tableBody.insertRow();
+                        const typeLabel = option.type === 'call' ? 'Call' : 'Put';
+                        const positionLabel = option.position === 'long' ? 'Long' : 'Short';
+                        row.insertCell(0).textContent = `${positionLabel} ${typeLabel} @ ${option.strike.toFixed(2)} x${option.quantity}`;
+                        row.insertCell(1).textContent = (greeks.delta * option.quantity).toFixed(4);
+                        row.insertCell(2).textContent = (greeks.gamma * option.quantity).toFixed(4);
+                        row.insertCell(3).textContent = (greeks.theta * option.quantity).toFixed(4);
+                        row.insertCell(4).textContent = (greeks.vega * option.quantity).toFixed(4);
+                        row.insertCell(5).textContent = (greeks.rho * option.quantity).toFixed(4);
+                    }
+                } catch (error) {
+                    console.error('Error calculating greeks:', error);
+                }
+            }
+        }
+        // Event Listeners
+        function initEventListeners() {
+            document.getElementById('cryptoPair').addEventListener('change', function() {
+                state.currentSymbol = this.value;
+                loadMarketData();
+            });
+            document.getElementById('loadMarketData').addEventListener('click', loadMarketData);
+            document.getElementById('addOptionModalBtn').addEventListener('click', openAddModal);
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('optionModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+            document.getElementById('addOptionBtn').addEventListener('click', addOption);
+            document.getElementById('updateOptionBtn').addEventListener('click', updateOption);
+            document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('exportJson').addEventListener('click', exportToJson);
+            document.getElementById('exportPng').addEventListener('click', exportToPng);
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    applyStrategyTemplate(this.dataset.strategy);
+                });
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+            // Real-time premium calculation when modal fields change
+            ['optionType', 'position', 'strike', 'timeToExpiration', 'riskFreeRate', 'dividendYield'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) {
+                    elem.addEventListener('input', async function() {
+                        await recalculatePremiumInModal();
+                    });
+                    elem.addEventListener('change', async function() {
+                        await recalculatePremiumInModal();
+                    });
+                }
+            });
+            ['riskFreeRate', 'timeToExpiration', 'dividendYield'].forEach(id => {
+                document.getElementById(id).addEventListener('input', async function() {
+                    if (state.options.length > 0) {
+                        await calculatePremiums();
+                    }
+                    await updateChart();
+                    await calculateGreeks();
+                    showUpdateIndicator();
+                });
+            });
+        }
+        // Chart Functions
+        function initChart() {
+            const ctx = document.getElementById('payoffChart').getContext('2d');
+            const gridColor = state.currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const textColor = state.currentTheme === 'dark' ? '#c9d1d9' : '#24292e';
+            state.chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: 'Underlying Price', color: textColor },
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        y: {
+                            title: { display: true, text: 'Profit/Loss', color: textColor },
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor, usePointStyle: true, padding: 20 }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: state.currentTheme === 'dark' ? '#161b22' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1
+                        }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                    elements: { line: { tension: 0.2 } }
+                }
+            });
+        }
+        async function updateChart() {
+            if (!state.chart || state.options.length === 0) return;
+            await calculateStrategyPNL();
+        }
+        function updateChartFromAPI(curveData) {
+            if (!state.chart) return;
+            const textColor = state.currentTheme === 'dark' ? '#c9d1d9' : '#24292e';
+            const gridColor = state.currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const totalColor = state.currentTheme === 'dark' ? '#ffa657' : '#cf222e';
+            // Individual option curves
+            const datasets = [];
+            state.options.forEach((option, index) => {
+                const color = getColorForIndex(index);
+                const data = curveData.map(point => ({
+                    x: point.price,
+                    y: calculateOptionPayoff(option, point.price)
+                }));
+                const typeLabel = option.type === 'call' ? 'Call' : 'Put';
+                const positionLabel = option.position === 'long' ? 'Long' : 'Short';
+                datasets.push({
+                    label: `${positionLabel} ${typeLabel} @ ${option.strike.toFixed(2)} x${option.quantity}`,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                });
+            });
+            // Total strategy curve
+            datasets.push({
+                label: 'Total PNL',
+                data: curveData.map(point => {
+                    let total = 0;
+                    state.options.forEach(opt => {
+                        total += calculateOptionPayoff(opt, point.price);
+                    });
+                    return { x: point.price, y: total };
+                }),
+                borderColor: totalColor,
+                backgroundColor: 'transparent',
+                borderWidth: 3,
+                pointRadius: 0,
+                fill: false
+            });
+            state.chart.data.datasets = datasets;
+            state.chart.update();
+        }
+        function calculateOptionPayoff(option, spotPrice) {
+            const intrinsic = option.type === 'call' 
+                ? Math.max(spotPrice - option.strike, 0)
+                : Math.max(option.strike - spotPrice, 0);
+
+            if (option.position === 'long')
+                return (intrinsic - option.premium) * option.quantity;
+            else
+                return (option.premium - intrinsic) * option.quantity;  // short
+        }
+        function getColorForIndex(index) {
+            const colors = ['#58a6ff', '#3fb950', '#f0883e', '#db61a2', '#bc8cff', '#ff7b72', '#ffa657', '#d29922', '#39c5cf'];
+            return colors[index % colors.length];
+        }
+        // Real-time premium recalculation in modal
+        async function recalculatePremiumInModal() {
+            const type = document.getElementById('optionType').value;
+            const strike = parseFloat(document.getElementById('strike').value);
+            const timeToExpiration = parseFloat(document.getElementById('timeToExpiration').value);
+            const volatility = parseFloat(document.getElementById('volatility').value);
+            const riskFreeRate = parseFloat(document.getElementById('riskFreeRate').value);
+            const dividendYield = parseFloat(document.getElementById('dividendYield').value);
+            
+            // Проверяем, что все необходимые значения валидны
+            if (isNaN(strike) || strike <= 0) {
+                document.getElementById('premium').value = '0.00';
+                return;
+            }
+            
+            const spotPrice = parseFloat(document.getElementById('spotPrice').value);
+            if (isNaN(spotPrice) || spotPrice <= 0) {
+                console.warn('Spot price not available for premium calculation');
+                document.getElementById('premium').value = '0.00';
+                return;
+            }
+            
+            if (isNaN(volatility) || volatility <= 0) {
+                console.warn('Volatility not available for premium calculation');
+                document.getElementById('premium').value = '0.00';
+                return;
+            }
+            
+            if (isNaN(timeToExpiration) || timeToExpiration <= 0) {
+                console.warn('Time to expiration not valid for premium calculation');
+                document.getElementById('premium').value = '0.00';
+                return;
+            }
+            
+            try {
+                const premium = await calculateOptionPrice(
+                    type,
+                    strike,
+                    timeToExpiration,
+                    volatility,
+                    riskFreeRate || 5,
+                    dividendYield || 0
+                );
+                
+                // Проверяем, что премия валидна
+                if (premium !== undefined && premium !== null && !isNaN(premium) && premium >= 0) {
+                    document.getElementById('premium').value = premium.toFixed(2);
+                } else {
+                    console.warn('Invalid premium calculated:', premium);
+                    document.getElementById('premium').value = '0.00';
+                }
+            } catch (error) {
+                console.error('Error calculating premium:', error);
+                document.getElementById('premium').value = '0.00';
+            }
+        }
+        // Option Management
+        async function addOption() {
+            const type = document.getElementById('optionType').value;
+            const position = document.getElementById('position').value;
+            const strike = parseFloat(document.getElementById('strike').value);
+            const rawPremium = parseFloat(document.getElementById('premium').value) || 0;
+            const premium = position === 'long' ? rawPremium : -rawPremium;
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const option = {
+                id: Date.now(),
+                type,
+                position,
+                strike,
+                premium,
+                quantity
+            };
+            state.options.push(option);
+            updateOptionsList();
+            await calculateStrategyPNL();
+            await calculateGreeks();
+            showUpdateIndicator();
+            closeModal();
+        }
+        function removeOption(id) {
+            state.options = state.options.filter(opt => opt.id !== id);
+            if (state.editingOptionId === id) cancelEdit();
+            updateOptionsList();
+            calculateStrategyPNL();
+            calculateGreeks();
+            showUpdateIndicator();
+        }
+        function editOption(id) {
+            const option = state.options.find(opt => opt.id === id);
+            if (!option) return;
+            state.editingOptionId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Option';
+            document.getElementById('addOptionBtn').style.display = 'none';
+            document.getElementById('editButtons').style.display = 'flex';
+            document.getElementById('optionType').value = option.type;
+            document.getElementById('position').value = option.position;
+            document.getElementById('strike').value = option.strike.toFixed(2);
+            document.getElementById('premium').value = option.premium.toFixed(2);
+            document.getElementById('quantity').value = option.quantity || 1;
+            showModal();
+        }
+        async function updateOption() {
+            const type = document.getElementById('optionType').value;
+            const position = document.getElementById('position').value;
+            const strike = parseFloat(document.getElementById('strike').value);
+            const premium = parseFloat(document.getElementById('premium').value);
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const index = state.options.findIndex(opt => opt.id === state.editingOptionId);
+            if (index !== -1) {
+                state.options[index] = {
+                    id: state.editingOptionId,
+                    type,
+                    position,
+                    strike,
+                    premium,
+                    quantity
+                };
+            }
+            cancelEdit();
+            updateOptionsList();
+            await calculateStrategyPNL();
+            await calculateGreeks();
+            showUpdateIndicator();
+            closeModal();
+        }
+        function updateOptionsList() {
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            if (state.options.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--muted);">No options added</div>';
+                return;
+            }
+            state.options.forEach(option => {
+                const li = document.createElement('li');
+                const optionCard = document.createElement('div');
+                optionCard.className = 'option-card';
+                const typeLabel = option.type === 'call' ? 'Call' : 'Put';
+                const positionLabel = option.position === 'long' ? 'Long' : 'Short';
+               
+                optionCard.innerHTML = `
+                    <div class="option-header">
+                        <div class="option-info">
+                            <span class="option-type ${option.type}">${typeLabel}</span>
+                            <span class="option-position ${option.position}">${positionLabel}</span>
+                        </div>
+                        <div class="option-details">
+                            <span class="detail-value">${option.strike.toFixed(2)}</span>
+                            <span class="detail-value">${option.premium.toFixed(2)}</span>
+                            <span class="detail-value">x${option.quantity}</span>
+                        </div>
+                    </div>
+                    <div class="option-actions">
+                        <button class="btn-outline btn-sm" onclick="editOption(${option.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-danger btn-sm" onclick="removeOption(${option.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                li.appendChild(optionCard);
+                container.appendChild(li);
+            });
+        }
+        // Utility Functions
+        async function openAddModal() {
+            state.editingOptionId = null;
+            document.getElementById('modalTitle').textContent = 'Add Option';
+            document.getElementById('addOptionBtn').style.display = 'block';
+            document.getElementById('editButtons').style.display = 'none';
+            document.getElementById('optionType').value = 'call';
+            document.getElementById('position').value = 'long';
+            
+            // Загружаем актуальные рыночные данные
+            await loadMarketData();
+            
+            // Устанавливаем страйк близко к текущей цене
+            const currentSpotPrice = parseFloat(document.getElementById('spotPrice').value);
+            let defaultStrike;
+            
+            if (isNaN(currentSpotPrice) || currentSpotPrice <= 0) {
+                // Если цена не загрузилась, используем разумное значение по умолчанию
+                defaultStrike = state.currentSymbol.includes('BTC') ? 90000 : 
+                               state.currentSymbol.includes('ETH') ? 3000 : 100;
+            } else {
+                // Округляем до ближайшего разумного значения
+                if (currentSpotPrice > 1000) {
+                    defaultStrike = Math.round(currentSpotPrice / 500) * 500; // Округляем до 500 для BTC
+                } else if (currentSpotPrice > 100) {
+                    defaultStrike = Math.round(currentSpotPrice / 50) * 50; // Округляем до 50 для ETH
+                } else {
+                    defaultStrike = Math.round(currentSpotPrice); // Для остальных
+                }
+            }
+            
+            document.getElementById('strike').value = defaultStrike;
+            document.getElementById('quantity').value = 1;
+            
+            // Пересчитываем премию после установки страйка
+            await recalculatePremiumInModal();
+            showModal();
+        }
+        function showModal() {
+            document.getElementById('optionModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('optionModal').style.display = 'none';
+            cancelEdit();
+        }
+        function cancelEdit() {
+            state.editingOptionId = null;
+            document.getElementById('modalTitle').textContent = 'Add Option';
+            document.getElementById('addOptionBtn').style.display = 'block';
+            document.getElementById('editButtons').style.display = 'none';
+        }
+        async function calculatePremiums() {
+            try {
+                const S = parseFloat(document.getElementById('spotPrice').value);
+                const T = parseFloat(document.getElementById('timeToExpiration').value) / 365;
+                const sigma = parseFloat(document.getElementById('volatility').value) / 100;
+                const r = parseFloat(document.getElementById('riskFreeRate').value) / 100;
+                const q = parseFloat(document.getElementById('dividendYield').value) / 100;
+                
+                for (const option of state.options) {
+                    option.premium = await calculateOptionPrice(
+                        option.type,
+                        option.strike,
+                        T * 365,
+                        sigma * 100,
+                        r * 100,
+                        q * 100
+                    );
+                }
+                updateOptionsList();
+            } catch (error) {
+                console.error('Error calculating premiums:', error);
+            }
+        }
+        async function applyStrategyTemplate(strategy) {
+            const spotPrice = parseFloat(document.getElementById('spotPrice').value);
+            
+            // Защита от невалидной цены
+            if (isNaN(spotPrice) || spotPrice <= 0) {
+                console.error('Invalid spot price for strategy template');
+                return;
+            }
+            
+            state.options = [];
+            
+            const templates = {
+                longCall: [{ type: 'call', position: 'long', strike: spotPrice, quantity: 1 }],
+                longPut: [{ type: 'put', position: 'long', strike: spotPrice, quantity: 1 }],
+                straddle: [
+                    { type: 'call', position: 'long', strike: spotPrice, quantity: 1 },
+                    { type: 'put', position: 'long', strike: spotPrice, quantity: 1 }
+                ],
+                strangle: [
+                    { type: 'call', position: 'long', strike: spotPrice * 1.1, quantity: 1 },
+                    { type: 'put', position: 'long', strike: spotPrice * 0.9, quantity: 1 }
+                ],
+                butterfly: [
+                    { type: 'call', position: 'long', strike: spotPrice * 0.9, quantity: 1 },
+                    { type: 'call', position: 'short', strike: spotPrice, quantity: 2 },
+                    { type: 'call', position: 'long', strike: spotPrice * 1.1, quantity: 1 }
+                ],
+                ironCondor: [
+                    { type: 'put', position: 'long', strike: spotPrice * 0.85, quantity: 1 },
+                    { type: 'put', position: 'short', strike: spotPrice * 0.9, quantity: 1 },
+                    { type: 'call', position: 'short', strike: spotPrice * 1.1, quantity: 1 },
+                    { type: 'call', position: 'long', strike: spotPrice * 1.15, quantity: 1 }
+                ]
+            };
+            
+            if (templates[strategy]) {
+                for (const template of templates[strategy]) {
+                    const premium = await calculateOptionPrice(
+                        template.type,
+                        template.strike,
+                        parseFloat(document.getElementById('timeToExpiration').value),
+                        parseFloat(document.getElementById('volatility').value),
+                        parseFloat(document.getElementById('riskFreeRate').value),
+                        parseFloat(document.getElementById('dividendYield').value)
+                    );
+                    
+                    state.options.push({
+                        id: Date.now() + Math.random(),
+                        type: template.type,
+                        position: template.position,
+                        strike: template.strike,
+                        premium: premium || 0,
+                        quantity: template.quantity
+                    });
+                }
+            }
+            
+            updateOptionsList();
+            await calculateStrategyPNL();
+            await calculateGreeks();
+            showUpdateIndicator();
+        }
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}Params`).classList.add('active');
+        }
+        function toggleTheme() {
+            state.currentTheme = state.currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-color-mode', state.currentTheme);
+            localStorage.setItem('theme', state.currentTheme);
+            document.getElementById('themeToggle').innerHTML = state.currentTheme === 'dark'
+                ? '<i class="fas fa-sun"></i>'
+                : '<i class="theme_toggle fas fa-moon"></i>';
+            updateChartTheme();
+        }
+        function updateChartTheme() {
+            if (!state.chart) return;
+            const textColor = state.currentTheme === 'dark' ? '#c9d1d9' : '#24292e';
+            const gridColor = state.currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            state.chart.options.scales.x.ticks.color = textColor;
+            state.chart.options.scales.y.ticks.color = textColor;
+            state.chart.options.scales.x.grid.color = gridColor;
+            state.chart.options.scales.y.grid.color = gridColor;
+            state.chart.options.scales.x.title.color = textColor;
+            state.chart.options.scales.y.title.color = textColor;
+            state.chart.options.plugins.legend.labels.color = textColor;
+            state.chart.update();
+        }
+        function showUpdateIndicator() {
+            const indicator = document.getElementById('updateIndicator');
+            indicator.style.display = 'block';
+            indicator.classList.remove('fade-out');
+            void indicator.offsetWidth;
+            indicator.classList.add('fade-out');
+            setTimeout(() => {
+                indicator.style.display = 'none';
+                indicator.classList.remove('fade-out');
+            }, 1500);
+        }
+        function loadPreferences() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                state.currentTheme = savedTheme;
+                document.documentElement.setAttribute('data-color-mode', savedTheme);
+                document.getElementById('themeToggle').innerHTML = savedTheme === 'dark'
+                    ? '<i class="theme_toggle fas fa-sun"></i>'
+                    : '<i class="theme_toggle fas fa-moon"></i>';
+            }
+        }
+        function updateUI() {
+            // UI update if needed
+        }
+        function exportToJson() {
+            const data = {
+                marketParams: {
+                    spotPrice: parseFloat(document.getElementById('spotPrice').value),
+                    volatility: parseFloat(document.getElementById('volatility').value),
+                    riskFreeRate: parseFloat(document.getElementById('riskFreeRate').value),
+                    timeToExpiration: parseFloat(document.getElementById('timeToExpiration').value),
+                    dividendYield: parseFloat(document.getElementById('dividendYield').value)
+                },
+                options: state.options
+            };
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'option-strategy.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        function exportToPng() {
+            if (!state.chart) return;
+            const chartCanvas = document.getElementById('payoffChart');
+            const image = chartCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = image;
+            a.download = 'payoff-chart.png';
+            a.click();
+        }
+        // Make functions available globally for onclick handlers
+        window.editOption = editOption;
+        window.removeOption = removeOption;
+    </script>
+</body>
+</html>
