@@ -116,7 +116,7 @@ double VolatilityCalculator::calculateHistoricalVolatility(
     
     // Годовая волатильность (умножаем на sqrt(252) для дневных данных)
     // Предполагаем, что данные дневные
-    double annualVolatility = stdDev * std::sqrt(365.0);
+    double annualVolatility = stdDev * std::sqrt(252.0);
     
     return annualVolatility;
 }
@@ -155,7 +155,7 @@ double VolatilityCalculator::calculateParkinsonVolatility(
     double dailyVolatility = std::sqrt(variance);
     
     // Годовая волатильность
-    return dailyVolatility * std::sqrt(365.0);
+    return dailyVolatility * std::sqrt(252.0);
 }
 
 double VolatilityCalculator::getCurrentPrice(const std::vector<OHLCV>& ohlcv_data) {
